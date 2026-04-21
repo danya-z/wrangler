@@ -16,8 +16,10 @@ import re
 WORKING_DIR = p.Path('/home/your_username/project_name')
 INPUT_FILE  = WORKING_DIR / 'filenames.csv'
 OUTPUT_FILE = WORKING_DIR / 'archives.csv'
+# ==================================
 
-# Regex that strips the per-file suffix so siblings collapse to one id.
+# Regex that strips the per-file suffix 
+# so different wells withing plate collapse to one id.
 SUFFIX_PATTERN = r'\(.*\)'
 
 assert (WORKING_DIR.is_dir()), f"The working directory {WORKING_DIR} does not exist"
@@ -25,7 +27,7 @@ assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 
 
 # === MAIN ===
-# A set gives us free deduplication.
+# A set data structure gives us free deduplication.
 archives = set()
 with open(INPUT_FILE, newline='', encoding='utf-8-sig') as f:
   reader = csv.reader(f)

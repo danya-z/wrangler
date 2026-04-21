@@ -4,12 +4,16 @@ import subprocess
 import csv
 import os
 
-WORKING_DIR = p.Path('/home/dzhumati/pdx')
-INPUT_FILE = WORKING_DIR / 'pdx-plates.csv'
-OUTPUT_DIR = WORKING_DIR / 'pdx-files'
+from fortress_utils import tar_path_for, TARGET_FILE
+
+# === EDIT THIS FOR YOUR PROJECT ===
+WORKING_DIR = p.Path('/home/your_username/project_name')
+INPUT_FILE  = WORKING_DIR / 'archives.csv'
+OUTPUT_DIR  = WORKING_DIR / 'extracted'
 
 STATUS_COLS = ['On Fortress', 'Is Staged', 'Permissions',
-               'params.m in Tar', 'params.m Local', 'Inspection Timestamp']
+               f'{TARGET_FILE} in Tar', f'{TARGET_FILE} Local',
+               'Inspection Timestamp']
 
 
 def ask_about_header(): # {{{
@@ -43,7 +47,7 @@ def read_input(): # {{{
     header = raw_rows[0]
     data_rows = raw_rows[1:]
   else:
-    header = ['Plate']
+    header = ['Archive']
     data_rows = raw_rows
 
   # Add missing status columns
@@ -98,11 +102,11 @@ def parse_ls_u_line(line): # {{{
   return perms, state, filename
 # }}}
 
-def inspect_plate(plate): # {{{
-  '''Check if a plate's tar exists on Fortress, its staging state, and permissions.
+def inspect_archive(archive): # {{{
+  '''Check if an archive's tar exists on Fortress, its staging state, and permissions.
   Returns (on_fortress, is_staged, permissions, tar_paths).'''
-  year = plate[:4]
-  base = f"/group/nolte/{year}_Reconstructed/{plate}_A.tar"
+  base = tar_path_for(archive)
+  base_dir = str(p.Path(base).parent)
 
   result = subprocess.run(
     ["hsi", "ls", "-U", base],
@@ -118,7 +122,7 @@ def inspect_plate(plate): # {{{
     parsed = parse_ls_u_line(line)
     if parsed:
       perms, state, filename = parsed
-      tar_files.append(f"/group/nolte/{year}_Reconstructed/{filename}")
+      tar_files.append(f"{base_dir}/{filename}")
       permissions = perms
       # DISK = staged on disk cache, TAPE = tape only (needs staging)
       is_staged = "Yes" if state == "DISK" else "No"
@@ -128,13 +132,13 @@ def inspect_plate(plate): # {{{
 # }}}
 
 def check_tar_contents(tar_path): # {{{
-  '''Check if the tarball on Fortress contains parameters.m.'''
+  '''Check if the tarball on Fortress contains the target file.'''
   result = subprocess.run(
     ["htar", "-tvf", tar_path],
     capture_output=True, text=True
   )
   for line in result.stdout.splitlines():
-    if "parameters.m" in line:
+    if TARGET_FILE in line:
       return True
   return False
 # }}}
@@ -144,19 +148,19 @@ def check_tar_contents(tar_path): # {{{
 assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 
 header, rows = read_input()
-plate_col = header[0]
+archive_col = header[0]
 
 print(f"\n{'='*60}")
-print(f"Inspecting {len(rows)} plates on Fortress")
+print(f"Inspecting {len(rows)} archives on Fortress")
 print(f"{'='*60}\n")
 
 for i, row in enumerate(rows):
-  plate = row[plate_col].strip()
-  if not plate:
+  archive = row[archive_col].strip()
+  if not archive:
     continue
 
-  print(f"  [{i+1}/{len(rows)}] {plate}...", end=' ', flush=True)
-  on_fortress, is_staged, permissions, tar_files = inspect_plate(plate)
+  print(f"  [{i+1}/{len(rows)}] {archive}...", end=' ', flush=True)
+  on_fortress, is_staged, permissions, tar_files = inspect_archive(archive)
 
   row['On Fortress'] = on_fortress
   row['Is Staged'] = is_staged
@@ -164,28 +168,27 @@ for i, row in enumerate(rows):
   row['Inspection Timestamp'] = datetime.now().isoformat(timespec='seconds')
 
   if on_fortress == 'Yes':
-    # Check if parameters.m exists inside the tarball on Fortress
+    # Check if the target file exists inside the tarball on Fortress
     in_tar = check_tar_contents(tar_files[0])
-    row['params.m in Tar'] = 'Yes' if in_tar else 'No'
+    row[f'{TARGET_FILE} in Tar'] = 'Yes' if in_tar else 'No'
 
-    # Check if parameters.m was already downloaded locally
+    # Check if the target file was already downloaded locally
     stem = p.Path(tar_files[0]).stem
-    local = (OUTPUT_DIR / stem / "parameters.m").is_file()
-    row['params.m Local'] = 'Yes' if local else 'No'
+    local = (OUTPUT_DIR / stem / TARGET_FILE).is_file()
+    row[f'{TARGET_FILE} Local'] = 'Yes' if local else 'No'
 
     print(f"found (staged: {is_staged}, perms: {permissions}, "
           f"in tar: {'Yes' if in_tar else 'No'}, local: {'Yes' if local else 'No'})")
   else:
     print("NOT found")
 
-  # Save after each plate so progress is not lost
+  # Save after each archive so progress is not lost
   save_csv(header, rows)
 
-found     = sum(1 for r in rows if r['On Fortress'] == 'Yes')
-missing   = sum(1 for r in rows if r['On Fortress'] == 'No')
-in_tar    = sum(1 for r in rows if r.get('params.m in Tar') == 'Yes')
-local     = sum(1 for r in rows if r.get('params.m Local') == 'Yes')
+found   = sum(1 for r in rows if r['On Fortress'] == 'Yes')
+missing = sum(1 for r in rows if r['On Fortress'] == 'No')
+in_tar  = sum(1 for r in rows if r.get(f'{TARGET_FILE} in Tar') == 'Yes')
+local   = sum(1 for r in rows if r.get(f'{TARGET_FILE} Local') == 'Yes')
 print(f"\nDone: {found} found, {missing} missing, "
-      f"{in_tar} have params.m in tar, {local} already downloaded")
+      f"{in_tar} have {TARGET_FILE} in tar, {local} already downloaded")
 print(f"Results written to {INPUT_FILE}")
-

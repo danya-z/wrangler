@@ -5,23 +5,26 @@ import subprocess
 import csv
 import os
 
-WORKING_DIR = p.Path('/home/dzhumati/pdx')
-INPUT_FILE = WORKING_DIR / 'pdx-plates.csv'
-OUTPUT_DIR = WORKING_DIR / 'pdx-files'
-LOG_DIR    = OUTPUT_DIR / 'logs'
+from fortress_utils import tar_path_for, TARGET_FILE
+
+# === EDIT THIS FOR YOUR PROJECT ===
+WORKING_DIR = p.Path('/home/your_username/project_name')
+INPUT_FILE  = WORKING_DIR / 'archives.csv'
+OUTPUT_DIR  = WORKING_DIR / 'extracted'
+LOG_DIR     = OUTPUT_DIR / 'logs'
 
 # Columns that this script writes into the CSV
-EXTRACT_COLS = ['params.m Local', 'Return Code', 'End-of-Download Timestamp']
+EXTRACT_COLS = [f'{TARGET_FILE} Local', 'Return Code', 'End-of-Download Timestamp']
 
 
 def extract(tar): # {{{
   '''
-  Extracts the parameters.m file given the adress in the following format
-  /group/nolte/2020_Reconstructed/20201122SM_A.tar
+  Extracts the TARGET_FILE from the given tar, e.g.
+  /group/nolte/2020_Reconstructed/20201122SM_A.tar -> 20201122SM_A/parameters.m
   '''
   stem = p.Path(tar).stem
   logfile = LOG_DIR / f"htar_{stem}.log"
-  inner_path = f"{stem}/parameters.m"
+  inner_path = f"{stem}/{TARGET_FILE}"
 
   print(f"  Extracting {stem}...")
   with open(logfile, "w") as log:
@@ -36,8 +39,8 @@ def extract(tar): # {{{
       log.write(line)
     proc.wait()
 
-  has_params = (OUTPUT_DIR / stem / "parameters.m").is_file()
-  return stem, proc.returncode, has_params
+  has_target = (OUTPUT_DIR / stem / TARGET_FILE).is_file()
+  return stem, proc.returncode, has_target
 # }}}
 
 def save_csv(header, rows): # {{{
@@ -77,7 +80,7 @@ for col in EXTRACT_COLS:
   if col not in header:
     header.append(col)
 
-plate_col = header[0]
+archive_col = header[0]
 
 rows = []
 for raw in raw_rows[1:]:
@@ -87,27 +90,26 @@ for raw in raw_rows[1:]:
 # Build extraction queue: on fortress, not yet extracted
 tar_queue = []  # (row_index, tar_path)
 for i, row in enumerate(rows):
-  plate = row[plate_col].strip()
-  if not plate:
+  archive = row[archive_col].strip()
+  if not archive:
     continue
   if row['On Fortress'] != 'Yes':
     continue
   if row.get('Return Code'):
-    print(f"  {plate}: already extracted (rc={row['Return Code']}), skipping")
+    print(f"  {archive}: already extracted (rc={row['Return Code']}), skipping")
     continue
-  if row.get('params.m Local') == 'Yes':
-    print(f"  {plate}: parameters.m already present locally, skipping")
+  if row.get(f'{TARGET_FILE} Local') == 'Yes':
+    print(f"  {archive}: {TARGET_FILE} already present locally, skipping")
     continue
 
-  year = plate[:4]
-  tar_queue.append((i, f"/group/nolte/{year}_Reconstructed/{plate}_A.tar"))
+  tar_queue.append((i, tar_path_for(archive)))
 
 if not tar_queue:
   print("Nothing to extract.")
   raise SystemExit(0)
 
 print(f"\n{'='*60}")
-print(f"Extracting parameters.m from {len(tar_queue)} tars")
+print(f"Extracting {TARGET_FILE} from {len(tar_queue)} tars")
 print(f"{'='*60}\n")
 
 # Map tar stems back to row indices for updating the CSV
@@ -127,16 +129,16 @@ with ThreadPoolExecutor(max_workers=8) as pool:
   futures = {pool.submit(extract, tar): tar for _, tar in tar_queue}
   # 'as_completed' returns futures *as jobs complete*
   for fut in as_completed(futures):
-    stem, returncode, has_params = fut.result()
+    stem, returncode, has_target = fut.result()
     idx = stem_to_row[stem]
-    rows[idx]['params.m Local'] = 'Yes' if has_params else 'No'
+    rows[idx][f'{TARGET_FILE} Local'] = 'Yes' if has_target else 'No'
     rows[idx]['Return Code'] = str(returncode)
     rows[idx]['End-of-Download Timestamp'] = datetime.now().isoformat(timespec='seconds')
-    print(f"  Done: {stem}  rc={returncode}  params={'Yes' if has_params else 'No'}")
+    print(f"  Done: {stem}  rc={returncode}  {TARGET_FILE}={'Yes' if has_target else 'No'}")
     save_csv(header, rows)
 
 save_csv(header, rows)
-extracted = sum(1 for r in rows if r.get('Return Code'))
-have_params = sum(1 for r in rows if r.get('params.m Local') == 'Yes')
-print(f"\nDone: {extracted} extracted, {have_params} have parameters.m")
+extracted   = sum(1 for r in rows if r.get('Return Code'))
+have_target = sum(1 for r in rows if r.get(f'{TARGET_FILE} Local') == 'Yes')
+print(f"\nDone: {extracted} extracted, {have_target} have {TARGET_FILE}")
 print(f"Results written to {INPUT_FILE}")

@@ -7,8 +7,11 @@ import csv
 import sys
 import os
 
-WORKING_DIR = p.Path('/home/dzhumati/pdx')
-INPUT_FILE = WORKING_DIR / 'pdx-plates.csv'
+from fortress_utils import tar_path_for, TARGET_FILE
+
+# === EDIT THIS FOR YOUR PROJECT ===
+WORKING_DIR = p.Path('/home/your_username/project_name')
+INPUT_FILE  = WORKING_DIR / 'archives.csv'
 
 STAGE_COLS = ['Stage Requested Timestamp']
 HEARTBEAT_SECONDS = 10  # how often to refresh the live status line
@@ -43,15 +46,15 @@ assert 'On Fortress' in header, (
 assert 'Is Staged' in header, (
   f"'Is Staged' column not found — run inspect-fortress.py first"
 )
-assert 'params.m Local' in header, (
-  f"'params.m Local' column not found — run inspect-fortress.py first"
+assert f'{TARGET_FILE} Local' in header, (
+  f"'{TARGET_FILE} Local' column not found — run inspect-fortress.py first"
 )
 
 for col in STAGE_COLS:
   if col not in header:
     header.append(col)
 
-plate_col = header[0]
+archive_col = header[0]
 
 rows = []
 for raw in raw_rows[1:]:
@@ -64,23 +67,22 @@ already_staged = 0
 already_extracted = 0
 
 for i, row in enumerate(rows):
-  plate = row[plate_col].strip()
-  if not plate:
+  archive = row[archive_col].strip()
+  if not archive:
     continue
-  # Skip plates that not on Fortress
+  # Skip archives that not on Fortress
   if row['On Fortress'] != 'Yes':
     continue
-  # Skip plates that are saved locally
-  elif row['params.m Local'] == 'Yes':
+  # Skip archives that are saved locally
+  elif row[f'{TARGET_FILE} Local'] == 'Yes':
     already_extracted += 1
     continue
-  # Skip plates that are staged
+  # Skip archives that are staged
   elif row['Is Staged'] == 'Yes':
     already_staged += 1
     continue
 
-  year = plate[:4]
-  to_stage.append((i, f"/group/nolte/{year}_Reconstructed/{plate}_A.tar"))
+  to_stage.append((i, tar_path_for(archive)))
 
 print(f"{'='*60}")
 print(f"Staging summary")

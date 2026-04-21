@@ -2,16 +2,15 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 import pathlib as p
 import subprocess
-import csv
-import os
 
-from fortress_utils import tar_path_for, TARGET_FILE
+from fortress_utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
 
 # === EDIT THIS FOR YOUR PROJECT ===
 WORKING_DIR = p.Path('/home/your_username/project_name')
 INPUT_FILE  = WORKING_DIR / 'archives.csv'
 OUTPUT_DIR  = WORKING_DIR / 'extracted'
 LOG_DIR     = OUTPUT_DIR / 'logs'
+# ==================================
 
 # Columns that this script writes into the CSV
 EXTRACT_COLS = [f'{TARGET_FILE} Local', 'Return Code', 'End-of-Download Timestamp']
@@ -43,19 +42,6 @@ def extract(tar): # {{{
   return stem, proc.returncode, has_target
 # }}}
 
-def save_csv(header, rows): # {{{
-  '''Write updated rows back to the input CSV atomically.'''
-  tmp = INPUT_FILE.with_suffix(INPUT_FILE.suffix + '.tmp')
-  with open(tmp, 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.DictWriter(f, fieldnames=header)
-    writer.writeheader()
-    writer.writerows(rows)
-    f.flush()
-    os.fsync(f.fileno())
-  os.replace(tmp, INPUT_FILE)
-# }}}
-
-
 # === MAIN ===
 
 # Make sure the working directories and the input file exist {{{
@@ -67,25 +53,12 @@ assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 # }}}
 
 # Read the CSV — expect it to have been inspected first
-with open(INPUT_FILE, newline='', encoding='utf-8-sig') as f:
-  raw_rows = list(csv.reader(f))
-
-header = raw_rows[0]
+header, rows = read_csv_as_dicts(INPUT_FILE, extra_cols=EXTRACT_COLS)
 assert 'On Fortress' in header, (
   f"'On Fortress' column not found — run inspect-fortress.py first"
 )
 
-# Add extraction columns if missing
-for col in EXTRACT_COLS:
-  if col not in header:
-    header.append(col)
-
 archive_col = header[0]
-
-rows = []
-for raw in raw_rows[1:]:
-  row = {col: (raw[i] if i < len(raw) else '') for i, col in enumerate(header)}
-  rows.append(row)
 
 # Build extraction queue: on fortress, not yet extracted
 tar_queue = []  # (row_index, tar_path)
@@ -135,7 +108,7 @@ with ThreadPoolExecutor(max_workers=8) as pool:
     rows[idx]['Return Code'] = str(returncode)
     rows[idx]['End-of-Download Timestamp'] = datetime.now().isoformat(timespec='seconds')
     print(f"  Done: {stem}  rc={returncode}  {TARGET_FILE}={'Yes' if has_target else 'No'}")
-    save_csv(header, rows)
+    atomic_write_csv(INPUT_FILE, header, rows)
 
 save_csv(header, rows)
 extracted   = sum(1 for r in rows if r.get('Return Code'))

@@ -1,10 +1,13 @@
 # Given a spreadsheet of file names, produce a spreadsheet of unique archive ids.
 #
 # Assumes the first column of the input file is of the form
-#   20241102SM_A(1)
-#   20241102SM_A(2)
+#      
+#   20241102SM(1)
+#   20241102SM(2)
 #   ...
-#   20240122L_A(3)
+#   20240122L(3)
+#           ^ note, there is no '_A' like in the archive format  
+#
 # The trailing `(N)` is stripped, duplicates removed, and the resulting
 # archive ids (e.g. 20241102SM_A) are written to the output CSV.
 

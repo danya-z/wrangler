@@ -3,63 +3,31 @@ import pathlib as p
 import subprocess
 import select
 import time
-import csv
 import sys
-import os
 
-from fortress_utils import tar_path_for, TARGET_FILE
+from fortress_utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
 
 # === EDIT THIS FOR YOUR PROJECT ===
 WORKING_DIR = p.Path('/home/your_username/project_name')
 INPUT_FILE  = WORKING_DIR / 'archives.csv'
+# ==================================
 
 STAGE_COLS = ['Stage Requested Timestamp']
 HEARTBEAT_SECONDS = 10  # how often to refresh the live status line
-
-
-def save_csv(header, rows): # {{{
-  '''Write updated rows back to the input CSV atomically.
-  Writes to a temp file and renames; an interruption leaves the
-  previous file intact rather than truncating in place.'''
-  tmp = INPUT_FILE.with_suffix(INPUT_FILE.suffix + '.tmp')
-  with open(tmp, 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.DictWriter(f, fieldnames=header)
-    writer.writeheader()
-    writer.writerows(rows)
-    f.flush()
-    os.fsync(f.fileno())
-  os.replace(tmp, INPUT_FILE)
-# }}}
 
 
 # === Main ===
 
 assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 
-with open(INPUT_FILE, newline='', encoding='utf-8-sig') as f:
-  raw_rows = list(csv.reader(f))
+header, rows = read_csv_as_dicts(INPUT_FILE, extra_cols=STAGE_COLS)
 
-header = raw_rows[0]
-assert 'On Fortress' in header, (
-  f"'On Fortress' column not found — run inspect-fortress.py first"
-)
-assert 'Is Staged' in header, (
-  f"'Is Staged' column not found — run inspect-fortress.py first"
-)
-assert f'{TARGET_FILE} Local' in header, (
-  f"'{TARGET_FILE} Local' column not found — run inspect-fortress.py first"
-)
-
-for col in STAGE_COLS:
-  if col not in header:
-    header.append(col)
+for required in ('On Fortress', 'Is Staged', f'{TARGET_FILE} Local'):
+  assert required in header, (
+    f"'{required}' column not found — run inspect-fortress.py first"
+  )
 
 archive_col = header[0]
-
-rows = []
-for raw in raw_rows[1:]:
-  row = {col: (raw[i] if i < len(raw) else '') for i, col in enumerate(header)}
-  rows.append(row)
 
 # Build the list of tars that need staging
 to_stage = []  # (row_index, tar_path)
@@ -105,7 +73,7 @@ for _, tar in to_stage:
 timestamp = datetime.now().isoformat(timespec='seconds')
 for idx, _ in to_stage:
   rows[idx]['Stage Requested Timestamp'] = timestamp
-save_csv(header, rows)
+atomic_write_csv(INPUT_FILE, header, rows)
 
 print(f"\nSubmitting bulk stage request for {len(to_stage)} tars...")
 print(f"Safe to Ctrl+C — the stage request stays queued in HPSS.\n")

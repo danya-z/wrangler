@@ -1,80 +1,19 @@
 from datetime import datetime
 import pathlib as p
 import subprocess
-import csv
-import os
 
-from fortress_utils import tar_path_for, TARGET_FILE
+from fortress_utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
 
 # === EDIT THIS FOR YOUR PROJECT ===
 WORKING_DIR = p.Path('/home/your_username/project_name')
 INPUT_FILE  = WORKING_DIR / 'archives.csv'
 OUTPUT_DIR  = WORKING_DIR / 'extracted'
+# ==================================
 
 STATUS_COLS = ['On Fortress', 'Is Staged', 'Permissions',
                f'{TARGET_FILE} in Tar', f'{TARGET_FILE} Local',
                'Inspection Timestamp']
 
-
-def ask_about_header(): # {{{
-  '''Asks the user if the input CSV has a header line.'''
-  print(f"Preview of {INPUT_FILE}:")
-  with open(INPUT_FILE, newline='', encoding='utf-8-sig') as f:
-    reader = csv.reader(f)
-    for i, row in enumerate(reader):
-      if i >= 10:
-        break
-      print(f"  {row}")
-  print()
-
-  while True:
-    answer = input(f"Does {INPUT_FILE} have a header line? (yes/no): ").strip().lower()
-    if answer in ("yes", "y"):
-      return True
-    if answer in ("no", "n"):
-      return False
-    print("Please type 'yes' or 'no'.")
-# }}}
-
-def read_input(): # {{{
-  '''Read the input CSV, adding status columns if needed. Returns (header, rows).'''
-  has_header = ask_about_header()
-
-  with open(INPUT_FILE, newline='', encoding='utf-8-sig') as f:
-    raw_rows = list(csv.reader(f))
-
-  if has_header:
-    header = raw_rows[0]
-    data_rows = raw_rows[1:]
-  else:
-    header = ['Archive']
-    data_rows = raw_rows
-
-  # Add missing status columns
-  for col in STATUS_COLS:
-    if col not in header:
-      header.append(col)
-
-  # Convert to list of dicts, padding short rows with empty strings
-  rows = []
-  for raw in data_rows:
-    row = {col: (raw[i] if i < len(raw) else '') for i, col in enumerate(header)}
-    rows.append(row)
-
-  return header, rows
-# }}}
-
-def save_csv(header, rows): # {{{
-  '''Write updated rows back to the input CSV atomically.'''
-  tmp = INPUT_FILE.with_suffix(INPUT_FILE.suffix + '.tmp')
-  with open(tmp, 'w', newline='', encoding='utf-8-sig') as f:
-    writer = csv.DictWriter(f, fieldnames=header)
-    writer.writeheader()
-    writer.writerows(rows)
-    f.flush()                   # push Python's buffer to the OS
-    os.fsync(f.fileno())        # push OS's buffer to the disk
-  os.replace(tmp, INPUT_FILE)   # atomic rename
-# }}}
 
 def parse_ls_u_line(line): # {{{
   '''Parse a file line from hsi ls -U output.
@@ -143,11 +82,12 @@ def check_tar_contents(tar_path): # {{{
   return False
 # }}}
 
-# == MAIN ==
+# === MAIN ===
 
 assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 
-header, rows = read_input()
+header, rows = read_csv_as_dicts(INPUT_FILE, extra_cols=STATUS_COLS,
+                                 fallback_header=['Archive'])
 archive_col = header[0]
 
 print(f"\n{'='*60}")
@@ -183,7 +123,7 @@ for i, row in enumerate(rows):
     print("NOT found")
 
   # Save after each archive so progress is not lost
-  save_csv(header, rows)
+  atomic_write_csv(INPUT_FILE, header, rows)
 
 found   = sum(1 for r in rows if r['On Fortress'] == 'Yes')
 missing = sum(1 for r in rows if r['On Fortress'] == 'No')

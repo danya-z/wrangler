@@ -3,31 +3,34 @@
 A small suite of Python scripts for pulling a target file (e.g.
 `parameters.m`) out of tar archives stored on Fortress, our HPSS tape
 system. The scripts were originally written for the PDX project; this
-copy is generalized so anyone on depot can adapt it to their own
-archives.
+copy is generalized so anyone in the group can adapt it to their own
+needs.
 
-**Project status:** unmaintained. Git history is here as insurance — if
-a copy of the scripts misbehaves, recover by re-copying from depot. If
-you want to pick the project up, go ahead.
+**Project status:** unmaintained. Git is here as insurance.
+If you want to pick the project up, there is always more work to do, 
+from documenting and cleaning up the code base, to adding features.
 
 
 ## Getting a copy
 
-Everything lives on depot. To use the scripts, copy the directory into
-your home:
+Wrangler's codebase lives on depot. 
+The README assumes you are logged into depot via `ssh username@data.rcac.purdue.edu`.
+To use the scripts, copy the directory into your home:
 
 ```sh
-cp -r --exclude=.git /depot/path/to/wrangler ~/
+cp -r --exclude=.git /group/nolte/wrangler ~/
 ```
 
-The `--exclude=.git` is important: it leaves the git history behind so
-your copy is a plain folder, not a broken checkout. If you know git and
-want to track changes / contribute fixes, skip the exclude and work in
-a clone instead.
+The command does the following: 
+- `cp`: the copy command.
+- `-r`: the "recursive copy" flag, allows you to copy directories.
+- `--exclude=.git`: excludes the git directory from the copy. If you intend to commit to the project and know how git works, feel free to omit this exclude.
+- `/group/nolte/wrangler`: This specifies what we are copying
+- `~/`: This specifies where we are copying. Tilde stands for your home directory, which is the same as `/home/your_username/`. You can replace this with some other path if you want to copy wrangler elsewhere.
 
 No virtualenv, no install step — just run the scripts with whatever
-`python3` is on the system. You do need `hsi` and `htar` on your
-`PATH`; those come with the Fortress client tools.
+`python3` is on the system. Libraries used are all standard and should be installed by default.
+You do need `hsi` and `htar` on your `PATH`; if you have access to fortress, they should already be there.
 
 
 ## What each script does
@@ -81,15 +84,14 @@ project's Fortress layout.
 
 ## Typical workflow
 
-Assuming you already have a list of filenames from a Fortress search
-or an export:
+Assuming you already have a list of filenames from gazer or a day-well spreadsheet:
 
-1. **Edit the config.** Open `fortress_utils.py` and set `GROUP_PATH`,
-   `TAR_SUFFIX`, and `TARGET_FILE` for your archive. Then open each of
-   the four scripts and edit the `=== EDIT THIS FOR YOUR PROJECT ===`
+1. **Edit the config.** Open `fortress_utils.py` and set `TARGET_FILE` for your archive.
+   For newer archives, `parameters.m` is the standard for storing metadata. 
+   Then, open each of the scripts and edit the `=== EDIT THIS FOR YOUR PROJECT ===`
    block at the top to point at your working directory and input CSV.
 
-2. **(Optional) Collapse filenames to ids.**
+2. **Collapse filenames to ids.**
    ```sh
    python3 extract-ids.py
    ```
@@ -120,8 +122,8 @@ or an export:
    ```sh
    python3 extract-from-fortress.py
    ```
-   Downloads the target file from every staged tar. Re-run to retry
-   any that failed.
+   Downloads the target file from every staged tar.
+   Re-run to retry any that failed.
 
 
 ## Assumptions and caveats
@@ -143,11 +145,3 @@ or an export:
   corrupt it. If two scripts are run on the same CSV at once, the
   last writer wins.
 - **Required tools on `PATH`:** `hsi`, `htar`, `python3` (3.8+).
-
-
-## If something breaks
-
-Most likely cause: an older copy of the scripts. Re-copy from depot
-(`cp -r --exclude=.git /depot/path/to/wrangler ~/`) and try again
-before digging in. The git history on depot is the authoritative
-version; local copies are snapshots.

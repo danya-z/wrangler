@@ -18,14 +18,14 @@ The README assumes you are logged into depot via `ssh username@data.rcac.purdue.
 To use the scripts, copy the directory into your home:
 
 ```sh
-cp -r --exclude=.git /group/nolte/wrangler ~/
+cp -r --exclude=.git /group/nolte/data/wrangler ~/
 ```
 
 The command does the following: 
 - `cp`: the copy command.
 - `-r`: the "recursive copy" flag, allows you to copy directories.
 - `--exclude=.git`: excludes the git directory from the copy. If you intend to commit to the project and know how git works, feel free to omit this exclude.
-- `/group/nolte/wrangler`: This specifies what we are copying
+- `/group/nolte/data/wrangler`: This specifies what we are copying
 - `~/`: This specifies where we are copying. Tilde stands for your home directory, which is the same as `/home/your_username/`. You can replace this with some other path if you want to copy wrangler elsewhere.
 
 No virtualenv, no install step — just run the scripts with whatever

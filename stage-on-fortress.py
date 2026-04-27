@@ -5,7 +5,7 @@ import select
 import time
 import sys
 
-from fortress_utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
+from utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
 
 # === EDIT THIS FOR YOUR PROJECT ===
 WORKING_DIR = p.Path('/home/your_username/project_name')

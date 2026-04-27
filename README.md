@@ -76,7 +76,7 @@ Runs up to 8 extractions in parallel. Writes `<target> Local`,
 `Return Code`, and `End-of-Download Timestamp` columns. Per-archive
 `htar` logs land in `OUTPUT_DIR/logs/`.
 
-### `fortress_utils.py`
+### `utils.py`
 Shared config and helpers (`tar_path_for`, `atomic_write_csv`,
 `read_csv_as_dicts`). Not run directly — edited to match your
 project's Fortress layout.
@@ -86,7 +86,7 @@ project's Fortress layout.
 
 Assuming you already have a list of filenames from gazer or a day-well spreadsheet:
 
-1. **Edit the config.** Open `fortress_utils.py` and set `TARGET_FILE` for your archive.
+1. **Edit the config.** Open `utils.py` and set `TARGET_FILE` for your archive.
    For newer archives, `parameters.m` is the standard for storing metadata. 
    Then, open each of the scripts and edit the `=== EDIT THIS FOR YOUR PROJECT ===`
    block at the top to point at your working directory and input CSV.

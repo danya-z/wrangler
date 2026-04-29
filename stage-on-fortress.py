@@ -1,16 +1,12 @@
 from datetime import datetime
-import pathlib as p
 import subprocess
 import select
 import time
 import sys
 
-from utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
-
-# === EDIT THIS FOR YOUR PROJECT ===
-WORKING_DIR = p.Path('/home/your_username/project_name')
-INPUT_FILE  = WORKING_DIR / 'archives.csv'
-# ==================================
+from utils import (tar_path_for, TARGET_FILE,
+                   atomic_write_csv, read_csv_as_dicts,
+                   ARCHIVES_CSV as INPUT_FILE)
 
 STAGE_COLS = ['Stage Requested Timestamp']
 HEARTBEAT_SECONDS = 10  # how often to refresh the live status line

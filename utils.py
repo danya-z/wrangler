@@ -5,12 +5,20 @@ import pathlib as p
 import csv
 import os
 
+# === EDIT THIS FOR YOUR PROJECT ===
+# Where the input CSV lives and where extracted files go.
+WORKING_DIR  = p.Path('/home/your_username/project_name')
+ARCHIVES_CSV = WORKING_DIR / 'archives.csv'   # the running spreadsheet
+OUTPUT_DIR   = WORKING_DIR / 'extracted'      # where target files land
+LOG_DIR      = OUTPUT_DIR / 'logs'            # per-archive htar logs
+# ==================================
+
 # Archives on Fortress are expected at:
 #   {GROUP_PATH}/{year}_Reconstructed/{archive_id}{TAR_SUFFIX}
 # e.g. /group/nolte/2024_Reconstructed/20241102SM_A.tar
 GROUP_PATH = '/group/nolte'
 TAR_SUFFIX = '_A.tar'
-#             ^ Sometimes this standard is not upheld within fortress. 
+#             ^ Sometimes this standard is not upheld within fortress.
 #               Check manually
 
 

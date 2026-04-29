@@ -11,15 +11,15 @@
 # The trailing `(N)` is stripped, duplicates removed, and the resulting
 # archive ids (e.g. 20241102SM_A) are written to the output CSV.
 
-import pathlib as p
 import csv
 import re
 
-# === EDIT THIS FOR YOUR PROJECT ===
-WORKING_DIR = p.Path('/home/your_username/project_name')
+from utils import WORKING_DIR, ARCHIVES_CSV
+
+# Project paths live in utils.py — only this script's input file is local,
+# since none of the other scripts need it.
 INPUT_FILE  = WORKING_DIR / 'filenames.csv'
-OUTPUT_FILE = WORKING_DIR / 'archives.csv'
-# ==================================
+OUTPUT_FILE = ARCHIVES_CSV
 
 # Regex that strips the per-file suffix 
 # so different wells withing plate collapse to one id.

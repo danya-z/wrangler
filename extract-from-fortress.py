@@ -3,14 +3,10 @@ from datetime import datetime
 import pathlib as p
 import subprocess
 
-from utils import tar_path_for, TARGET_FILE, atomic_write_csv, read_csv_as_dicts
-
-# === EDIT THIS FOR YOUR PROJECT ===
-WORKING_DIR = p.Path('/home/your_username/project_name')
-INPUT_FILE  = WORKING_DIR / 'archives.csv'
-OUTPUT_DIR  = WORKING_DIR / 'extracted'
-LOG_DIR     = OUTPUT_DIR / 'logs'
-# ==================================
+from utils import (tar_path_for, TARGET_FILE,
+                   atomic_write_csv, read_csv_as_dicts,
+                   ARCHIVES_CSV as INPUT_FILE,
+                   OUTPUT_DIR, LOG_DIR)
 
 # Columns that this script writes into the CSV
 EXTRACT_COLS = [f'{TARGET_FILE} Local', 'Return Code', 'End-of-Download Timestamp']

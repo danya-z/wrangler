@@ -86,10 +86,12 @@ project's Fortress layout.
 
 Assuming you already have a list of filenames from gazer or a day-well spreadsheet:
 
-1. **Edit the config.** Open `utils.py` and set `TARGET_FILE` for your archive.
-   For newer archives, `parameters.m` is the standard for storing metadata. 
-   Then, open each of the scripts and edit the `=== EDIT THIS FOR YOUR PROJECT ===`
-   block at the top to point at your working directory and input CSV.
+1. **Edit the config.** Open `utils.py` and edit the
+   `=== EDIT THIS FOR YOUR PROJECT ===` block to point `WORKING_DIR` at
+   your project directory. Set `TARGET_FILE` to whatever you're pulling
+   out of each tar — for newer archives, `parameters.m` is the standard
+   for storing metadata. The other scripts read all their paths from
+   `utils.py`, so this is the only file you need to edit.
 
 2. **Collapse filenames to ids.**
    ```sh

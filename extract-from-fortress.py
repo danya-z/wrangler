@@ -28,7 +28,7 @@ def extract(tar): # {{{
       stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT,
       text=True,
-      errors='replace',  # htar sometimes emits non-UTF-8 bytes
+      errors='replace' # htar can include invalid symbols; they need to be replaced with U+FFFD
       cwd=OUTPUT_DIR,
     )
     for line in proc.stdout:
@@ -107,7 +107,7 @@ with ThreadPoolExecutor(max_workers=8) as pool:
     print(f"  Done: {stem}  rc={returncode}  {TARGET_FILE}={'Yes' if has_target else 'No'}")
     atomic_write_csv(INPUT_FILE, header, rows)
 
-save_csv(header, rows)
+atomic_write_csv(INPUT_FILE, header, rows)
 extracted   = sum(1 for r in rows if r.get('Return Code'))
 have_target = sum(1 for r in rows if r.get(f'{TARGET_FILE} Local') == 'Yes')
 print(f"\nDone: {extracted} extracted, {have_target} have {TARGET_FILE}")

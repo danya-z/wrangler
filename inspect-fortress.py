@@ -46,7 +46,7 @@ def inspect_archive(archive): # {{{
 
   result = subprocess.run(
     ["hsi", "ls", "-U", base],
-    capture_output=True, text=True
+    capture_output=True, text=True, errors='replace',
   )
 
   tar_files = []
@@ -71,7 +71,7 @@ def check_tar_contents(tar_path): # {{{
   '''Check if the tarball on Fortress contains the target file.'''
   result = subprocess.run(
     ["htar", "-tvf", tar_path],
-    capture_output=True, text=True
+    capture_output=True, text=True, errors='replace',
   )
   for line in result.stdout.splitlines():
     if TARGET_FILE in line:

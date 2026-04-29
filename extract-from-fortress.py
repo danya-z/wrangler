@@ -28,6 +28,7 @@ def extract(tar): # {{{
       stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT,
       text=True,
+      errors='replace',  # htar sometimes emits non-UTF-8 bytes
       cwd=OUTPUT_DIR,
     )
     for line in proc.stdout:

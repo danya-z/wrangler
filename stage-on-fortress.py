@@ -83,6 +83,7 @@ proc = subprocess.Popen(
   stdout=subprocess.PIPE,
   stderr=subprocess.STDOUT,
   text=True,
+  errors='replace',  # hsi sometimes emits non-UTF-8 bytes
   bufsize=1,
 )
 

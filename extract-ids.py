@@ -14,12 +14,9 @@
 import csv
 import re
 
-from utils import WORKING_DIR, ARCHIVES_CSV
-
-# Project paths live in utils.py — only this script's input file is local,
-# since none of the other scripts need it.
-INPUT_FILE  = WORKING_DIR / 'filenames.csv'
-OUTPUT_FILE = ARCHIVES_CSV
+from utils import (WORKING_DIR,
+                   FILENAMES_CSV as INPUT_FILE,
+                   ARCHIVES_CSV as OUTPUT_FILE)
 
 # Regex that strips the per-file suffix 
 # so different wells withing plate collapse to one id.

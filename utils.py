@@ -7,11 +7,13 @@ import os
 
 # === EDIT THIS FOR YOUR PROJECT ===
 # Where the input CSV lives and where extracted files go.
-WORKING_DIR    = p.Path('/home/your_username/project_name')
-ARCHIVES_CSV   = WORKING_DIR / 'archives.csv'   # the running spreadsheet
-OUTPUT_DIR     = WORKING_DIR / 'extracted'      # where target files land
-LOG_DIR        = OUTPUT_DIR / 'logs'            # per-archive htar logs
-PARAMETERS_CSV = WORKING_DIR / 'parameters.csv' # parse_parameters.py output
+WORKING_DIR             = p.Path('/home/your_username/project_name')
+FILENAMES_CSV           = WORKING_DIR / 'filenames.csv'             # extract-ids.py input
+ARCHIVES_CSV            = WORKING_DIR / 'archives.csv'              # the running spreadsheet
+OUTPUT_DIR              = WORKING_DIR / 'extracted'                 # where target files land
+LOG_DIR                 = OUTPUT_DIR / 'logs'                       # per-archive htar logs
+PARAMETERS_CSV          = WORKING_DIR / 'parameters.csv'            # parse_parameters.py output
+FILTERED_PARAMETERS_CSV = WORKING_DIR / 'parameters.filtered.csv'   # filter_parameters.py output
 # ==================================
 
 # Archives on Fortress are expected at:

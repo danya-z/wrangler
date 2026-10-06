@@ -14,6 +14,11 @@ OUTPUT_DIR              = WORKING_DIR / 'extracted'                 # where targ
 LOG_DIR                 = OUTPUT_DIR / 'logs'                       # per-archive htar logs
 PARAMETERS_CSV          = WORKING_DIR / 'parameters.csv'            # parse_parameters.py output
 FILTERED_PARAMETERS_CSV = WORKING_DIR / 'parameters.filtered.csv'   # filter_parameters.py output
+
+# Database connection (username/password are prompted at runtime).
+DB_HOST = 'localhost'
+DB_PORT = 5432
+DB_NAME = 'wrangler'
 # ==================================
 
 # Archives on Fortress are expected at:

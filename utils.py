@@ -30,11 +30,11 @@ TAR_SUFFIX = '_A.tar'
 #               Check manually
 
 
-# File to get out of each tar during extraction.
-# You will have to tinker if you want to extract a pattern instead
-TARGET_FILE  = 'parameters.m'
-TARGET_FILES = ['parameters.m']   # paths relative to <stem>/, globs OK; [] = whole tar
-# e.g. ['subdir1/file1.csv', 'subdir1/subdir2/file2.csv', 'subdir*/file1.csv']
+# Files/directories to get out of each tar during extraction.
+# Paths are relative to the tar's top directory (<archive_id>_A/),
+# shell-style wildcards are allowed, and [] extracts the whole tar.
+# e.g. ['parameters.m', 'subdir1/file1.csv', 'subdir1/subdir2', 'subdir*/file1.csv']
+TARGET_FILES = ['parameters.m']
 
 
 def tar_path_for(archive_id):
@@ -44,6 +44,16 @@ def tar_path_for(archive_id):
   '''
   year = archive_id[:4]
   return f"{GROUP_PATH}/{year}_Reconstructed/{archive_id}{TAR_SUFFIX}"
+
+
+def targets_present(stem_dir):
+  '''
+  True if every TARGET_FILES pattern matches something under `stem_dir`
+  (e.g. OUTPUT_DIR/20241102SM_A). With TARGET_FILES = [] (whole tar),
+  True if `stem_dir` exists at all.
+  '''
+  stem_dir = p.Path(stem_dir)
+  return stem_dir.is_dir() and all(any(stem_dir.glob(t)) for t in TARGET_FILES)
 
 
 def atomic_write_csv(path, header, rows):

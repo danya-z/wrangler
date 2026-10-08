@@ -19,9 +19,12 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from utils import (TARGET_FILE, OUTPUT_DIR,
+from utils import (OUTPUT_DIR,
                    atomic_write_csv,
                    PARAMETERS_CSV as OUTPUT_FILE)
+
+# Requires 'parameters.m' to be in TARGET_FILES (utils.py) during extraction
+PARAMETERS_FILE = 'parameters.m'
 
 
 # ---------------------------------------------------------------------------
@@ -184,16 +187,16 @@ def build_rows(text, source_path):
 
 assert OUTPUT_DIR.is_dir(), f"The output directory {OUTPUT_DIR} does not exist"
 
-# Each extracted archive lives at OUTPUT_DIR/<archive_id>/<TARGET_FILE>;
+# Each extracted archive lives at OUTPUT_DIR/<archive_id>/<PARAMETERS_FILE>;
 # walking that glob is simpler than re-reading the archives CSV.
-param_files = sorted(OUTPUT_DIR.glob(f"*/{TARGET_FILE}"))
+param_files = sorted(OUTPUT_DIR.glob(f"*/{PARAMETERS_FILE}"))
 
 if not param_files:
-  print(f"No {TARGET_FILE} files found under {OUTPUT_DIR}.")
+  print(f"No {PARAMETERS_FILE} files found under {OUTPUT_DIR}.")
   raise SystemExit(0)
 
 print(f"\n{'='*60}")
-print(f"Parsing {len(param_files)} {TARGET_FILE} files")
+print(f"Parsing {len(param_files)} {PARAMETERS_FILE} files")
 print(f"{'='*60}\n")
 
 all_rows = []

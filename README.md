@@ -1,6 +1,6 @@
 # wrangler
 
-A small suite of Python scripts for pulling a target file (e.g.
+A small suite of Python scripts for pulling target files (e.g.
 `parameters.m`) out of tar archives stored on Fortress, our HPSS tape
 system. The scripts were originally written for the PDX project; this
 copy is generalized so anyone in the group can adapt it to their own
@@ -52,11 +52,11 @@ For each id in the archives CSV, asks Fortress:
 - does the tar exist?
 - is it staged on disk, or still on tape?
 - what are its permissions?
-- does it contain the target file?
-- has the target file already been downloaded locally?
+- does it contain all the target files?
+- have the target files already been downloaded locally?
 
 Writes the answers into new columns (`On Fortress`, `Is Staged`,
-`Permissions`, `<target> in Tar`, `<target> Local`, `Inspection
+`Permissions`, `Targets in Tar`, `Targets Local`, `Inspection
 Timestamp`). Safe to re-run; it updates in place.
 
 ### `stage-on-fortress.py`
@@ -71,8 +71,8 @@ column.
 
 ### `extract-from-fortress.py`
 For each tar that is on Fortress and not yet extracted locally, pulls
-the target file out and saves it under `OUTPUT_DIR/<archive_id>/`.
-Runs up to 8 extractions in parallel. Writes `<target> Local`,
+the target files out and saves them under `OUTPUT_DIR/<archive_id>/`.
+Runs up to 8 extractions in parallel. Writes `Targets Local`,
 `Return Code`, and `End-of-Download Timestamp` columns. Per-archive
 `htar` logs land in `OUTPUT_DIR/logs/`.
 
@@ -88,9 +88,10 @@ Assuming you already have a list of filenames from gazer or a day-well spreadshe
 
 1. **Edit the config.** Open `utils.py` and edit the
    `=== EDIT THIS FOR YOUR PROJECT ===` block to point `WORKING_DIR` at
-   your project directory. Set `TARGET_FILE` to whatever you're pulling
-   out of each tar — for newer archives, `parameters.m` is the standard
-   for storing metadata. The other scripts read all their paths from
+   your project directory. Set `TARGET_FILES` to the list of files or
+   directories you're pulling out of each tar (wildcards are allowed;
+   `[]` extracts the whole tar). For newer archives, `parameters.m` is
+   the standard for storing metadata, and `parse-parameters.py` needs it. The other scripts read all their paths from
    `utils.py`, so this is the only file you need to edit.
 
 2. **Collapse filenames to ids.**
@@ -124,7 +125,7 @@ Assuming you already have a list of filenames from gazer or a day-well spreadshe
    ```sh
    python3 extract-from-fortress.py
    ```
-   Downloads the target file from every staged tar.
+   Downloads the target files from every staged tar.
    Re-run to retry any that failed.
 
 
@@ -139,9 +140,11 @@ Assuming you already have a list of filenames from gazer or a day-well spreadshe
 - **Tar naming.** The template above is not universal on Fortress —
   some archives break the convention. `inspect-fortress.py` will
   report them as missing; check manually with `hsi ls`.
-- **One target file per tar.** The scripts pull a single file
-  (`TARGET_FILE`) out of each tar. Extracting a pattern or multiple
-  files requires editing `extract-from-fortress.py`.
+- **Target paths.** Entries in `TARGET_FILES` are relative to the tar's
+  top directory (`<archive_id>_A/`). An archive counts as having its
+  targets only if every entry matches something; if one entry is
+  missing from a tar, `htar` fails and that archive gets a non-zero
+  return code (see its log in `OUTPUT_DIR/logs/`).
 - **CSV is the source of truth.** All progress is written back to the
   input CSV atomically (temp file + rename), so a Ctrl+C won't
   corrupt it. If two scripts are run on the same CSV at once, the

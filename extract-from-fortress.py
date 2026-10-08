@@ -3,18 +3,18 @@ from datetime import datetime
 import pathlib as p
 import subprocess
 
-from utils import (tar_path_for, TARGET_FILE, TARGET_FILES,
+from utils import (tar_path_for, TARGET_FILES, targets_present,
                    atomic_write_csv, read_csv_as_dicts,
                    ARCHIVES_CSV as INPUT_FILE,
                    OUTPUT_DIR, LOG_DIR)
 
 # Columns that this script writes into the CSV
-EXTRACT_COLS = [f'{TARGET_FILE} Local', 'Return Code', 'End-of-Download Timestamp']
+EXTRACT_COLS = ['Targets Local', 'Return Code', 'End-of-Download Timestamp']
 
 
 def extract(tar): # {{{
   '''
-  Extracts the TARGET_FILE from the given tar, e.g.
+  Extracts the TARGET_FILES from the given tar, e.g.
   /group/nolte/2020_Reconstructed/20201122SM_A.tar -> 20201122SM_A/parameters.m
   '''
   stem = p.Path(tar).stem
@@ -35,7 +35,7 @@ def extract(tar): # {{{
       log.write(line)
     proc.wait()
 
-  has_target = all(any((OUTPUT_DIR / stem).glob(t)) for t in TARGET_FILES) and proc.returncode == 0
+  has_target = targets_present(OUTPUT_DIR / stem) and proc.returncode == 0
   return stem, proc.returncode, has_target
 # }}}
 
@@ -68,8 +68,8 @@ for i, row in enumerate(rows):
   if row.get('Return Code'):
     print(f"  {archive}: already extracted (rc={row['Return Code']}), skipping")
     continue
-  if row.get(f'{TARGET_FILE} Local') == 'Yes':
-    print(f"  {archive}: {TARGET_FILE} already present locally, skipping")
+  if row.get('Targets Local') == 'Yes':
+    print(f"  {archive}: targets already present locally, skipping")
     continue
 
   tar_queue.append((i, tar_path_for(archive)))
@@ -79,7 +79,7 @@ if not tar_queue:
   raise SystemExit(0)
 
 print(f"\n{'='*60}")
-print(f"Extracting {TARGET_FILE} from {len(tar_queue)} tars")
+print(f"Extracting {TARGET_FILES or 'everything'} from {len(tar_queue)} tars")
 print(f"{'='*60}\n")
 
 # Map tar stems back to row indices for updating the CSV
@@ -101,14 +101,14 @@ with ThreadPoolExecutor(max_workers=8) as pool:
   for fut in as_completed(futures):
     stem, returncode, has_target = fut.result()
     idx = stem_to_row[stem]
-    rows[idx][f'{TARGET_FILE} Local'] = 'Yes' if has_target else 'No'
+    rows[idx]['Targets Local'] = 'Yes' if has_target else 'No'
     rows[idx]['Return Code'] = str(returncode)
     rows[idx]['End-of-Download Timestamp'] = datetime.now().isoformat(timespec='seconds')
-    print(f"  Done: {stem}  rc={returncode}  {TARGET_FILE}={'Yes' if has_target else 'No'}")
+    print(f"  Done: {stem}  rc={returncode}  targets={'Yes' if has_target else 'No'}")
     atomic_write_csv(INPUT_FILE, header, rows)
 
 atomic_write_csv(INPUT_FILE, header, rows)
 extracted   = sum(1 for r in rows if r.get('Return Code'))
-have_target = sum(1 for r in rows if r.get(f'{TARGET_FILE} Local') == 'Yes')
-print(f"\nDone: {extracted} extracted, {have_target} have {TARGET_FILE}")
+have_target = sum(1 for r in rows if r.get('Targets Local') == 'Yes')
+print(f"\nDone: {extracted} extracted, {have_target} have all targets")
 print(f"Results written to {INPUT_FILE}")

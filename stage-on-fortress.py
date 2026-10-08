@@ -4,7 +4,7 @@ import select
 import time
 import sys
 
-from utils import (tar_path_for, TARGET_FILE,
+from utils import (tar_path_for,
                    atomic_write_csv, read_csv_as_dicts,
                    ARCHIVES_CSV as INPUT_FILE)
 
@@ -18,7 +18,7 @@ assert (INPUT_FILE.is_file()), f"The input file {INPUT_FILE} does not exist"
 
 header, rows = read_csv_as_dicts(INPUT_FILE, extra_cols=STAGE_COLS)
 
-for required in ('On Fortress', 'Is Staged', f'{TARGET_FILE} Local'):
+for required in ('On Fortress', 'Is Staged', 'Targets Local'):
   assert required in header, (
     f"'{required}' column not found — run inspect-fortress.py first"
   )
@@ -38,7 +38,7 @@ for i, row in enumerate(rows):
   if row['On Fortress'] != 'Yes':
     continue
   # Skip archives that are saved locally
-  elif row[f'{TARGET_FILE} Local'] == 'Yes':
+  elif row['Targets Local'] == 'Yes':
     already_extracted += 1
     continue
   # Skip archives that are staged

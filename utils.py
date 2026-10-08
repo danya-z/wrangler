@@ -11,7 +11,7 @@ WORKING_DIR             = p.Path('/home/your_username/project_name')
 FILENAMES_CSV           = WORKING_DIR / 'filenames.csv'             # extract-ids.py input
 ARCHIVES_CSV            = WORKING_DIR / 'archives.csv'              # the running spreadsheet
 OUTPUT_DIR              = WORKING_DIR / 'extracted'                 # where target files land
-LOG_DIR                 = OUTPUT_DIR / 'logs'                       # per-archive htar logs
+LOG_DIR                 = OUTPUT_DIR  / 'logs'                      # per-archive htar logs
 PARAMETERS_CSV          = WORKING_DIR / 'parameters.csv'            # parse_parameters.py output
 FILTERED_PARAMETERS_CSV = WORKING_DIR / 'parameters.filtered.csv'   # filter_parameters.py output
 
@@ -32,7 +32,9 @@ TAR_SUFFIX = '_A.tar'
 
 # File to get out of each tar during extraction.
 # You will have to tinker if you want to extract a pattern instead
-TARGET_FILE = 'parameters.m'
+TARGET_FILE  = 'parameters.m'
+TARGET_FILES = ['parameters.m']   # paths relative to <stem>/, globs OK; [] = whole tar
+# e.g. ['subdir1/file1.csv', 'subdir1/subdir2/file2.csv', 'subdir*/file1.csv']
 
 
 def tar_path_for(archive_id):

@@ -3,7 +3,7 @@ from datetime import datetime
 import pathlib as p
 import subprocess
 
-from utils import (tar_path_for, TARGET_FILE,
+from utils import (tar_path_for, TARGET_FILE, TARGET_FILES,
                    atomic_write_csv, read_csv_as_dicts,
                    ARCHIVES_CSV as INPUT_FILE,
                    OUTPUT_DIR, LOG_DIR)
@@ -19,23 +19,23 @@ def extract(tar): # {{{
   '''
   stem = p.Path(tar).stem
   logfile = LOG_DIR / f"htar_{stem}.log"
-  inner_path = f"{stem}/{TARGET_FILE}"
+  inner_paths = [f"{stem}/{t}" for t in TARGET_FILES]
 
   print(f"  Extracting {stem}...")
   with open(logfile, "w") as log:
     proc = subprocess.Popen(
-      ["htar", "-xf", tar, inner_path],
+      ["htar", "-xf", tar, *inner_paths],
       stdout=subprocess.PIPE,
       stderr=subprocess.STDOUT,
       text=True,
-      errors='replace' # htar can include invalid symbols; they need to be replaced with U+FFFD
+      errors='replace', # htar can include invalid symbols; they need to be replaced with U+FFFD
       cwd=OUTPUT_DIR,
     )
     for line in proc.stdout:
       log.write(line)
     proc.wait()
 
-  has_target = (OUTPUT_DIR / stem / TARGET_FILE).is_file()
+  has_target = all(any((OUTPUT_DIR / stem).glob(t)) for t in TARGET_FILES) and proc.returncode == 0
   return stem, proc.returncode, has_target
 # }}}
 

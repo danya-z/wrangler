@@ -141,10 +141,12 @@ Assuming you already have a list of filenames from gazer or a day-well spreadshe
   some archives break the convention. `inspect-fortress.py` will
   report them as missing; check manually with `hsi ls`.
 - **Target paths.** Entries in `TARGET_FILES` are relative to the tar's
-  top directory (`<archive_id>_A/`). An archive counts as having its
-  targets only if every entry matches something; if one entry is
-  missing from a tar, `htar` fails and that archive gets a non-zero
-  return code (see its log in `OUTPUT_DIR/logs/`).
+  top directory (`<archive_id>_A/`). Each tar is listed before
+  extraction and only the entries it actually contains are pulled, so
+  a missing file doesn't sink the whole archive. The `Targets in Tar`
+  and `Targets Local` columns read `Yes` (all entries), `Partial`
+  (some), or `No` (none); missing entries are noted in the archive's
+  log in `OUTPUT_DIR/logs/`.
 - **CSV is the source of truth.** All progress is written back to the
   input CSV atomically (temp file + rename), so a Ctrl+C won't
   corrupt it. If two scripts are run on the same CSV at once, the

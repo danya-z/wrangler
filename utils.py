@@ -1,7 +1,9 @@
 # Shared configuration and helpers for the Fortress scripts.
 # EDIT THIS FILE to match your project's Fortress layout.
 
+from fnmatch import fnmatch
 import pathlib as p
+import subprocess
 import csv
 import os
 
@@ -46,14 +48,54 @@ def tar_path_for(archive_id):
   return f"{GROUP_PATH}/{year}_Reconstructed/{archive_id}{TAR_SUFFIX}"
 
 
-def targets_present(stem_dir):
+def coverage(found):
   '''
-  True if every TARGET_FILES pattern matches something under `stem_dir`
-  (e.g. OUTPUT_DIR/20241102SM_A). With TARGET_FILES = [] (whole tar),
-  True if `stem_dir` exists at all.
+  'Yes' if all TARGET_FILES patterns were found, 'Partial' if some were,
+  'No' if none were.
+  '''
+  if len(found) == len(TARGET_FILES):
+    return 'Yes'
+  return 'Partial' if found else 'No'
+
+
+def list_tar_members(tar_path):
+  '''
+  Lists the tar on Fortress with `htar -tvf` (reads only its index).
+  Returns (returncode, member paths, raw output).
+  '''
+  result = subprocess.run(
+    ["htar", "-tvf", tar_path],
+    capture_output=True, text=True, errors='replace',
+  )
+  output = result.stdout + result.stderr
+  # The member path is the last token of each listing line, e.g.
+  #   HTAR: -rw-rw----  user/nolte-data  2944 2026-09-02 10:04  20260828HC_A/parameters.m
+  # Directories are listed too, with a trailing '/'.
+  members = [line.split()[-1] for line in output.splitlines() if line.split()]
+  return result.returncode, members, output
+
+
+def member_matches(member, stem, target):
+  '''True if a tar member matches `target`, directly or as a directory containing it.'''
+  target = target.rstrip('/')
+  return fnmatch(member, f"{stem}/{target}") or fnmatch(member, f"{stem}/{target}/*")
+
+
+def targets_in_tar(members, stem):
+  '''TARGET_FILES patterns that match at least one tar member.'''
+  return [t for t in TARGET_FILES if any(member_matches(m, stem, t) for m in members)]
+
+
+def local_targets_status(stem_dir):
+  '''
+  Yes/Partial/No: how many TARGET_FILES patterns match something under
+  `stem_dir` (e.g. OUTPUT_DIR/20241102SM_A). With TARGET_FILES = []
+  (whole tar), 'Yes' if `stem_dir` exists at all.
   '''
   stem_dir = p.Path(stem_dir)
-  return stem_dir.is_dir() and all(any(stem_dir.glob(t)) for t in TARGET_FILES)
+  if not stem_dir.is_dir():
+    return 'No'
+  return coverage([t for t in TARGET_FILES if any(stem_dir.glob(t.rstrip('/')))])
 
 
 def atomic_write_csv(path, header, rows):

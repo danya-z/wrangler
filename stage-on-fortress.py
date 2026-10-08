@@ -38,7 +38,7 @@ for i, row in enumerate(rows):
   if row['On Fortress'] != 'Yes':
     continue
   # Skip archives that are saved locally
-  elif row['Targets Local'] == 'Yes':
+  elif row['Targets Local'] in ('Yes', 'Partial'):
     already_extracted += 1
     continue
   # Skip archives that are staged

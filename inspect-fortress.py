@@ -1,9 +1,9 @@
 from datetime import datetime
-from fnmatch import fnmatch
 import pathlib as p
 import subprocess
 
-from utils import (tar_path_for, TARGET_FILES, targets_present,
+from utils import (tar_path_for,
+                   coverage, list_tar_members, targets_in_tar, local_targets_status,
                    atomic_write_csv, read_csv_as_dicts,
                    ARCHIVES_CSV as INPUT_FILE,
                    OUTPUT_DIR)
@@ -69,19 +69,11 @@ def inspect_archive(archive): # {{{
 # }}}
 
 def check_tar_contents(tar_path): # {{{
-  '''Check if the tarball on Fortress contains every TARGET_FILES pattern.'''
-  result = subprocess.run(
-    ["htar", "-tvf", tar_path],
-    capture_output=True, text=True, errors='replace',
-  )
-  # The member path is the last token of each listing line
-  members = [line.split()[-1] for line in result.stdout.splitlines() if line.split()]
-  stem = p.Path(tar_path).stem
-  # A pattern counts as found if it matches a member, or a directory containing one
-  return all(
-    any(fnmatch(m, f"{stem}/{t}") or fnmatch(m, f"{stem}/{t}/*") for m in members)
-    for t in TARGET_FILES
-  )
+  '''Yes/Partial/No: how many TARGET_FILES patterns the tarball on Fortress contains.'''
+  rc, members, _ = list_tar_members(tar_path)
+  if rc != 0:
+    return 'No'
+  return coverage(targets_in_tar(members, p.Path(tar_path).stem))
 # }}}
 
 # === MAIN ===
@@ -112,15 +104,15 @@ for i, row in enumerate(rows):
   if on_fortress == 'Yes':
     # Check if the targets exist inside the tarball on Fortress
     in_tar = check_tar_contents(tar_files[0])
-    row['Targets in Tar'] = 'Yes' if in_tar else 'No'
+    row['Targets in Tar'] = in_tar
 
     # Check if the targets were already downloaded locally
     stem = p.Path(tar_files[0]).stem
-    local = targets_present(OUTPUT_DIR / stem)
-    row['Targets Local'] = 'Yes' if local else 'No'
+    local = local_targets_status(OUTPUT_DIR / stem)
+    row['Targets Local'] = local
 
     print(f"found (staged: {is_staged}, perms: {permissions}, "
-          f"in tar: {'Yes' if in_tar else 'No'}, local: {'Yes' if local else 'No'})")
+          f"in tar: {in_tar}, local: {local})")
   else:
     print("NOT found")
 
@@ -130,7 +122,8 @@ for i, row in enumerate(rows):
 found   = sum(1 for r in rows if r['On Fortress'] == 'Yes')
 missing = sum(1 for r in rows if r['On Fortress'] == 'No')
 in_tar  = sum(1 for r in rows if r.get('Targets in Tar') == 'Yes')
+partial = sum(1 for r in rows if r.get('Targets in Tar') == 'Partial')
 local   = sum(1 for r in rows if r.get('Targets Local') == 'Yes')
 print(f"\nDone: {found} found, {missing} missing, "
-      f"{in_tar} have all targets in tar, {local} already downloaded")
+      f"{in_tar} have all targets in tar, {partial} have some, {local} already downloaded")
 print(f"Results written to {INPUT_FILE}")
